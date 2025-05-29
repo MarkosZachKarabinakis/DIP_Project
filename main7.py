@@ -1,4 +1,5 @@
 import cv2
+
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
@@ -36,27 +37,52 @@ distorted_images = {
     "Distorted Image #7": cv2.imread("images/distorted_img_7.png", cv2.IMREAD_GRAYSCALE),
 }
 
+## Αποκατάσταση: Distorted Image #7
 
-distorted_img_1 = distorted_images["Distorted Image #7"].copy()
+input_img = distorted_images["Distorted Image #7"].copy()
 
 # === Πριν την αποκατάσταση: Αξιολόγηση "distorted" ===
-mse_distorted = np.mean((target - distorted_img_1) ** 2)
-psnr_distorted = psnr(target, distorted_img_1)
-ssim_distorted = ssim(target, distorted_img_1)
+mse_distorted = np.mean((target - input_img) ** 2)
+psnr_distorted = psnr(target, input_img)
+ssim_distorted = ssim(target, input_img)
 print("Before Restoration:")
 print("MSE:", mse_distorted)
 print("PSNR:", psnr_distorted)
 print("SSIM:", ssim_distorted)
 
-restored = cv2.GaussianBlur(distorted_img_1,[5,5],0)
 
-show_image("Gaussian Blurr Output", restored)
+# === Εφαρμογή τεχνικών αποκατάστασης ===
+# Για την εικονα 7 , παρατηρουμε παλι οτι εχουμε θορυβο , συγκεκριμενα salt & pepper
+# Απο θεωρια ξερουμε οτι μια καλη αντιμετωπιση για αυτον τον θορυβο ειναι το median blurr
+# Defining median blurr
+def simple_median_blurr(image, window_size=3):  # βαζουμε default window size 3
+    pad = window_size // 2
 
-print("After Restoration:")
+    # pad με αντιγραφη των edges ουσιαστικα
+    padded = np.pad(image, pad, mode='edge')
+
+    # νεα εικονα για να μην επηρεαζονται οι τιμες οσο κανουμε την διαδικασια
+    result = np.zeros_like(image)
+
+    # για καθε πιξελ , βρισκουμε το window που αντιστοιχει σε αυτο στη νεα padded εικονα βαση
+    # και του window size που ορισαμε , και κανουμε στο window αυτο median
+    for i in range(image.shape[0]):
+        for j in range(image.shape[1]):
+            window = padded[i:window_size + i, j:window_size + j]
+            result[i, j] = np.median(window)
+
+
+restored = simple_median_blurr(input_img)
+
+# === Οπτική αξιολόγηση ===
+show_image("Distorted Image #7", input_img)
+show_image("Restored Image", restored)
+
+# === Ποσοτική αξιολόγηση μετά την αποκατάσταση (με χρήση της lena.jpg ως ground truth) ===
 mse_score = np.mean((target - restored) ** 2)
 psnr_score = psnr(target, restored)
 ssim_score = ssim(target, restored)
-#
+
 print("MSE:", mse_score)
 print("PSNR:", psnr_score)
 print("SSIM:", ssim_score)
